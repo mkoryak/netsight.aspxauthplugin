@@ -17,6 +17,17 @@ class TestExample(unittest.TestCase):
         pass
 
 
+    def test_echo(self):
+        plugin = ASPXAuthPlugin('aspxauth')
+        plugin.validation_key = """ha"""
+        plugin.decryption_key = """blee!"""
+
+        #bripes
+        cookie = """B5DF5C7CF2C07203CA83E15541172D48BDC2A30F1AD74206DDFA2D8431E196E55EF17C41DEDE94A53502F55E08596C3D1610679CFF074229BD1FD23436C201CC8371A65FD5CA18132E1E71205B5DBE7F"""
+        ret = plugin.authenticateCredentials({'cookie': cookie})
+        print 'decryption returned: ', ret
+
+
     def test_auth_pass1(self):
         plugin = ASPXAuthPlugin('aspxauth')
         plugin.validation_key = """07B6387D1DED6BF193EDD726B4ADFD6B92EDA470DDF639D4B78110CA797DCED426BECF322B9FBCC5E7C3FDA2E7BA28169611B1ACD1E7F063ABF17ECDC30AD482"""
