@@ -10,25 +10,14 @@ from cStringIO import StringIO
 from random import randrange
 from Crypto import Random
 
-from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
-from AccessControl.SecurityInfo import ClassSecurityInfo
-from Products.PluggableAuthService.interfaces.plugins import \
-    ILoginPasswordExtractionPlugin, \
-    IAuthenticationPlugin, \
-    ICredentialsUpdatePlugin, \
-    ICredentialsResetPlugin
 
-from App.class_init import default__class_init__ as InitializeClass
-from Products.PluggableAuthService.utils import classImplements
 
-from zope.event import notify
-from vitae.content.events import UserNeededEvent
 
-from App.config import getConfiguration
-config = getConfiguration()
-env = getattr(config, 'environment', {})
-COOKIE_DOMAIN = env.get('COOKIE_DOMAIN', '')
-COOKIE_TTL = int(env.get('COOKIE_TTL', '20'))
+
+
+
+COOKIE_DOMAIN = 'echo.com'
+COOKIE_TTL = 20
 
 def ReadFormsAuthTicketStringV3(f):
     chars = ord(f.read(1))
@@ -72,13 +61,13 @@ def towintime(t):
     return (t * 10000000) + 621355968000000000
 
 
-class ASPXAuthPlugin(BasePlugin):
+class ASPXAuthPlugin():
     """ASPXAuth Plugin.
 
     """
 
     meta_type = 'ASPXAuth Plugin'
-    security = ClassSecurityInfo()
+
 
     signatureLength = hmac.new(key='', digestmod=sha1).digest_size
 
@@ -99,7 +88,6 @@ class ASPXAuthPlugin(BasePlugin):
 
     #cookie = """31EBBD78D6F27972394A513A161AD0362E7906830460CE7D3F44E47B2F1AF63DD43E02EB22259E4AF342B232768D6701C9395AF42448E5D149FE8AE2E4D355E9F43A9B60E1A30C0282F9ED470D8037F3B9D1D965293BED7C6156672527A94B22F24039C3F7CA6ECFF6D50A0BFFB38C0E03FF9644092FB5F8FD6E6292AA7A49B5FF603456DE4EA041F785CC163A92C34937FDE017"""
     def __init__(self, id, title=None):
-        self._setId(id)
         self.title = title
         self.validation_key = ''
         self.decryption_key = ''
@@ -233,21 +221,13 @@ class ASPXAuthPlugin(BasePlugin):
         cookie = self.encodeCookie(data, sig)
         return cookie
 
-    security.declarePrivate('authenticateCredentials')
+
     def authenticateCredentials(self, credentials):
 
-        request = self.REQUEST
-        response = request.RESPONSE
-        # if we already authenticated
-        if request.get("AUTHENTICATED_USER", None) is not None:
-            uuid = request.AUTHENTICATED_USER.getName()
-            # return uuid, username ??? where is username ?
-            return uuid, uuid
+
 
         # We only authenticate when our challenge mechanism extracted
         # the cookie
-        if credentials.get('plugin') != self.getId():
-            return None
 
         cookie = credentials.get('cookie')
         if not cookie:
@@ -266,22 +246,11 @@ class ASPXAuthPlugin(BasePlugin):
         if unpacked is None:
             return None
         start_time, end_time, username, version, persistent, userdata, path = unpacked
+        print unpacked
 
-        # Check the cookie time still valid
-        t = time.time()
-        if t > start_time and t < end_time and version == 2:
+        return username, username
 
-            # update the cookie if we are past halfway of lifetime
-            if t > start_time + ((end_time - start_time) / 2):
-                self.updateCredentials(request, response, username, None)
 
-            if not request.cookies.get('username'):
-                notify(UserNeededEvent(self, username))
-                response.setCookie('username', username, quoted=False, path='/', domain=COOKIE_DOMAIN)
-                request.cookies['username'] = username  # so we see it on this request also
-            return username, username
-
-    security.declarePrivate('extractCredentials')
     def extractCredentials(self, request):
 
         """ Extract final auth credentials from 'request'.
@@ -312,10 +281,3 @@ class ASPXAuthPlugin(BasePlugin):
         response.expireCookie('username', path='/', domain=COOKIE_DOMAIN)
 
 
-classImplements(ASPXAuthPlugin,
-                IAuthenticationPlugin,
-                ILoginPasswordExtractionPlugin,
-                ICredentialsUpdatePlugin,
-                ICredentialsResetPlugin)
-
-InitializeClass(ASPXAuthPlugin)
